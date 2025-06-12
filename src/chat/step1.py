@@ -4,11 +4,25 @@ import dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_chroma import Chroma
+from langchain_openai import OpenAIEmbeddings
+from operator import itemgetter
 
 dotenv.load_dotenv()
 MODEL_NAME = "gpt-4.1-nano-2025-04-14"
 
+# ドキュメントを整形
+def format_documents(documents):
+    return "\n\n".join(document.page_content for document in documents)
+
 def create_chain():
+    vectorstore = Chroma(
+        embedding_function=OpenAIEmbeddings(
+            model="text-embedding-3-small"
+        ),
+        persist_directory="data",
+    )
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
     prompt = ChatPromptTemplate.from_messages(
         [
             (
@@ -19,12 +33,20 @@ def create_chain():
             ("human", "{input}")
         ]
     )
-    return prompt | ChatOpenAI(model=MODEL_NAME, temperature=0)
+    # return prompt | ChatOpenAI(model=MODEL_NAME, temperature=0)
+    return (
+        {
+            "input": itemgetter("input"),
+            "info": itemgetter("input") | retriever | format_documents,
+            "history": itemgetter("history")
+        }
+        | prompt
+        | ChatOpenAI(model=MODEL_NAME, temperature=0)
+    )
 
 # セッション状態を初期化
 if "history" not in st.session_state:
     st.session_state.history = []
-    # st.session_state.llm = ChatOpenAI(model_name=MODEL_NAME)
     st.session_state.chain = create_chain()
 
 
