@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>コシヒカリの価格推移</title>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable([
+          ['産地・月', '価格（円）'],
+          ['福島 7月4月', 27662],
+          ['福島 7月3月', 26556],
+          ['新潟 7月4月', 32738],
+          ['新潟 7月3月', 28912],
+          ['三重 7月4月', 24181],
+          ['三重 7月3月', 25544]
+        ]);
+
+        var options = {
+          title: 'コシヒカリの価格推移',
+          chartArea: {width: '50%'},
+          hAxis: {
+            title: '価格（円）',
+            minValue: 0
+          },
+          vAxis: {
+            title: '産地・月'
+          },
+          bars: 'horizontal'
+        };
+
+        var chart = new google.visualization.BarChart(document.getElementById('barchart'));
+        chart.draw(data, options);
+      }
+    </script>
+  </head>
+  <body>
+    <h2>コシヒカリの価格推移</h2>
+    <div id="barchart" style="width: 700px; height: 400px;"></div>
+  </body>
+</html>
