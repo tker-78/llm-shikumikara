@@ -1,6 +1,11 @@
 import streamlit as st
 import os
+import contextlib
+import io
 import dotenv
+import matplotlib.pyplot as plt
+from matplotlib import font_manager
+
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
@@ -9,8 +14,8 @@ from langchain_openai import OpenAIEmbeddings
 from operator import itemgetter
 
 dotenv.load_dotenv()
-MODEL_NAME = "gpt-4.1-nano-2025-04-14"
-
+# MODEL_NAME = "gpt-4.1-nano-2025-04-14"
+MODEL_NAME = "gpt-4.1-mini-2025-04-14"
 # ドキュメントを整形
 def format_documents(documents):
     return "\n\n".join(document.page_content for document in documents)
@@ -22,13 +27,11 @@ def create_chain():
         ),
         persist_directory="data",
     )
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 100})
     prompt = ChatPromptTemplate.from_messages(
         [
-            (
-                "system",
-                "回答には以下の情報も参考にしてください。参考情報: \n{info}",
-            ),
+            ("system", "以下の指示に対して、matplotlibを使ったpythonコードだけを出力してください。不要な説明は書かないでください。Streamlitでグラフを描画できる形式にしてください。"),
+            ("system", "回答には以下の情報も参考にしてください。参考情報: \n{info}"),
             ("placeholder", "{history}"),
             ("human", "{input}")
         ]
@@ -66,15 +69,34 @@ if st.button("送信"):
         {
             "input": user_input,
             "history": st.session_state.history,
-            "info": "ユーザの年齢は10歳です。",
         }
     )
-    st.session_state.history.append(HumanMessage(user_input))
-    # response = st.session_state.llm.invoke(st.session_state.history)
-    st.session_state.history.append(response)
+    code = response.content
+    st.write(code)
 
-    for message in reversed(st.session_state.history):
-        st.write(f"{message.type}: {message.content}")
+    if code.startswith("```python"):
+        code = code.replace("```python", "", 1)
+    if code.endswith("```"):
+        code = code.replace("```", "", 1)
+
+    with contextlib.redirect_stdout(io.StringIO()):
+        try:
+            plt.rcParams['font.family'] = 'sans-serif'
+            plt.rcParams['font.sans-serif'] = ['Hiragino Sans', 'Yu Gothic', 'Meirio', 'Takao', 'IPAexGothic',
+                                               'IPAPGothic', 'VL PGothic', 'Noto Sans CJK JP']
+
+            exec(code)
+        except SyntaxError as e:
+            st.error(f"構文エラーが発生しました。: \n行数: {e.lineno}\n位置] {e.offset}\nテキスト: {e.text}")
+        except Exception as e:
+            st.error(f"エラーが発生しました。: {e}")
+
+
+    # st.session_state.history.append(HumanMessage(user_input))
+    # st.session_state.history.append(response)
+
+    # for message in reversed(st.session_state.history):
+    #     st.write(f"{message.type}: {message.content}")
 
 
 
