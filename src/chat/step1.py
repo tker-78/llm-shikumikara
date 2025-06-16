@@ -22,7 +22,7 @@ def create_chain():
         ),
         persist_directory="data",
     )
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 100})
     prompt = ChatPromptTemplate.from_messages(
         [
             (
